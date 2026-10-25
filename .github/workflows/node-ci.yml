@@ -1,0 +1,114 @@
+name: 'Reusable Node CI'
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to install (e.g. "20.x", "22.x")'
+        type: string
+        required: false
+        default: '20.x'
+      package-manager:
+        description: 'Package manager to use ("npm", "pnpm", "yarn")'
+        type: string
+        required: false
+        default: 'npm'
+      working-directory:
+        description: 'Working directory containing package.json'
+        type: string
+        required: false
+        default: '.'
+
+permissions: {}
+
+jobs:
+  lint-test-build:
+    name: 'Node Lint, Test & Build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm (if required)
+        if: inputs.package-manager == 'pnpm'
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Setup Node.js with cache
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
+          cache-dependency-path: |
+            ${{ inputs.working-directory }}/package-lock.json
+            ${{ inputs.working-directory }}/pnpm-lock.yaml
+            ${{ inputs.working-directory }}/yarn.lock
+
+      - name: Install dependencies (immutable)
+        shell: bash
+        run: |
+          case "${{ inputs.package-manager }}" in
+            npm)
+              npm ci
+              ;;
+            pnpm)
+              pnpm install --frozen-lockfile
+              ;;
+            yarn)
+              yarn install --frozen-lockfile
+              ;;
+            *)
+              echo "::error::Unsupported package manager: ${{ inputs.package-manager }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Run code linter
+        shell: bash
+        run: |
+          if node -e "const pkg=require('./package.json'); process.exit(pkg.scripts && pkg.scripts.lint ? 0 : 1)" 2>/dev/null; then
+            echo "Running lint script..."
+            ${{ inputs.package-manager }} run lint
+          else
+            echo "No lint script defined in package.json. Skipping."
+          fi
+
+      - name: Run test suite
+        shell: bash
+        run: |
+          if node -e "const pkg=require('./package.json'); process.exit(pkg.scripts && pkg.scripts.test ? 0 : 1)" 2>/dev/null; then
+            echo "Running test suite..."
+            ${{ inputs.package-manager }} test
+          else
+            echo "No test script defined in package.json. Skipping."
+          fi
+
+      - name: Build distribution bundle
+        shell: bash
+        run: |
+          if node -e "const pkg=require('./package.json'); process.exit(pkg.scripts && pkg.scripts.build ? 0 : 1)" 2>/dev/null; then
+            echo "Running build script..."
+            ${{ inputs.package-manager }} run build
+          else
+            echo "No build script defined in package.json. Skipping."
+          fi
+
+      - name: Summarize Node CI execution
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Node.js CI Summary"
+            echo "- **Node Version:** \`${{ inputs.node-version }}\`"
+            echo "- **Package Manager:** \`${{ inputs.package-manager }}\`"
+            echo "- **Working Directory:** \`${{ inputs.working-directory }}\`"
+            echo "- **Status:** Lint, test, and build phases completed."
+          } >> "$GITHUB_STEP_SUMMARY"

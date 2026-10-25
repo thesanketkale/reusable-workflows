@@ -1,0 +1,93 @@
+name: 'Reusable .NET CI'
+
+on:
+  workflow_call:
+    inputs:
+      dotnet-version:
+        description: 'Target .NET SDK version (e.g. "8.0.x", "9.0.x")'
+        type: string
+        required: false
+        default: '8.0.x'
+      solution:
+        description: 'Path or glob to solution or project file'
+        type: string
+        required: false
+        default: '**/*.sln'
+      configuration:
+        description: 'Build configuration ("Debug" or "Release")'
+        type: string
+        required: false
+        default: 'Release'
+      test-filter:
+        description: 'Optional TestCaseFilter expression for dotnet test'
+        type: string
+        required: false
+        default: ''
+
+permissions: {}
+
+jobs:
+  build-and-test:
+    name: '.NET Build & Test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+          cache: true
+
+      - name: Restore dependencies
+        shell: bash
+        run: |
+          dotnet restore ${{ inputs.solution }}
+
+      - name: Build solution
+        shell: bash
+        run: |
+          dotnet build ${{ inputs.solution }} --no-restore --configuration ${{ inputs.configuration }}
+
+      - name: Verify code formatting
+        shell: bash
+        run: |
+          dotnet format ${{ inputs.solution }} --verify-no-changes --no-restore
+
+      - name: Run automated tests with coverage
+        shell: bash
+        run: |
+          FILTER_ARGS=()
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            FILTER_ARGS=(--filter "${{ inputs.test-filter }}")
+          fi
+          dotnet test ${{ inputs.solution }} \
+            --no-build \
+            --configuration ${{ inputs.configuration }} \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults \
+            "${FILTER_ARGS[@]}"
+
+      - name: Upload code coverage results
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: dotnet-coverage-results
+          path: TestResults/
+          if-no-files-found: ignore
+
+      - name: Summarize test execution
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### .NET CI Summary"
+            echo "- **SDK Version:** \`${{ inputs.dotnet-version }}\`"
+            echo "- **Configuration:** \`${{ inputs.configuration }}\`"
+            echo "- **Solution:** \`${{ inputs.solution }}\`"
+            echo "- **Status:** Build and test run completed successfully."
+          } >> "$GITHUB_STEP_SUMMARY"
