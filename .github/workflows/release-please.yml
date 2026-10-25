@@ -1,0 +1,70 @@
+name: 'Reusable Release Please'
+
+on:
+  workflow_call:
+    inputs:
+      release-type:
+        description: 'Release type strategy (e.g. "simple", "node", "dotnet", "terraform")'
+        type: string
+        required: false
+        default: 'simple'
+      package-name:
+        description: 'Package name to release'
+        type: string
+        required: false
+        default: ''
+      config-file:
+        description: 'Path to release-please configuration file'
+        type: string
+        required: false
+        default: ''
+      manifest-file:
+        description: 'Path to release-please manifest file'
+        type: string
+        required: false
+        default: ''
+    secrets:
+      token:
+        description: 'GitHub personal access token or token override'
+        required: false
+    outputs:
+      releases-created:
+        description: 'Whether a release was created'
+        value: ${{ jobs.release.outputs.releases_created }}
+      tag-name:
+        description: 'Published git tag name'
+        value: ${{ jobs.release.outputs.tag_name }}
+
+permissions: {}
+
+jobs:
+  release:
+    name: 'Automated Release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Run Release Please
+        id: release
+        uses: google-github-actions/release-please-action@e4dc86ba9405554aeba3c6bb2d169500e7d3b4ee # v4.1.1
+        with:
+          token: ${{ secrets.token || github.token }}
+          release-type: ${{ inputs.release-type }}
+          package-name: ${{ inputs.package-name }}
+          config-file: ${{ inputs.config-file }}
+          manifest-file: ${{ inputs.manifest-file }}
+
+      - name: Summarize Release Action
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Release Please Summary"
+            echo "- **Release Created:** \`${{ steps.release.outputs.releases_created || 'false' }}\`"
+            echo "- **Tag:** \`${{ steps.release.outputs.tag_name || 'N/A' }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

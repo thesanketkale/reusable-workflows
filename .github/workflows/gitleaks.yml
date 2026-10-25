@@ -1,0 +1,47 @@
+name: 'Reusable Gitleaks Scan'
+
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: 'Path to gitleaks configuration file'
+        type: string
+        required: false
+        default: '.gitleaks.toml'
+      fetch-depth:
+        description: 'Git history fetch depth (0 for full history scan)'
+        type: number
+        required: false
+        default: 0
+
+permissions: {}
+
+jobs:
+  scan:
+    name: 'Gitleaks Secret Scan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
+
+      - name: Run Gitleaks secret scanner
+        uses: gitleaks/gitleaks-action@f586c14365d4643c6aa59d472ae6e984bf47bb34 # v2.3.8
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_CONFIG: ${{ inputs.config-path }}
+
+      - name: Summarize Gitleaks Scan
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Gitleaks Secret Scan Summary"
+            echo "- **Config Path:** \`${{ inputs.config-path }}\`"
+            echo "- **Fetch Depth:** \`${{ inputs.fetch-depth }}\`"
+            echo "- **Status:** Completed scanning repository history."
+          } >> "$GITHUB_STEP_SUMMARY"

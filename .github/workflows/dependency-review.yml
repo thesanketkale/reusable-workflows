@@ -1,0 +1,52 @@
+name: 'Reusable Dependency Review'
+
+on:
+  workflow_call:
+    inputs:
+      fail-on-severity:
+        description: 'Vulnerability threshold to fail review ("low", "moderate", "high", "critical")'
+        type: string
+        required: false
+        default: 'high'
+      license-check:
+        description: 'Whether to validate package licenses against approved policy'
+        type: boolean
+        required: false
+        default: true
+      allow-licenses:
+        description: 'Comma-separated list of approved SPDX license identifiers'
+        type: string
+        required: false
+        default: 'MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, CC0-1.0'
+
+permissions: {}
+
+jobs:
+  review:
+    name: 'Dependency Review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Perform Dependency Review
+        uses: actions/dependency-review-action@3b139cfc5fae8b618d3eae3675e383bb1769c019 # v4.5.0
+        with:
+          fail-on-severity: ${{ inputs.fail-on-severity }}
+          allow-licenses: ${{ inputs.allow-licenses }}
+          comment-summary-in-pr: true
+
+      - name: Summarize Dependency Review
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Dependency Review Summary"
+            echo "- **Severity Threshold:** \`${{ inputs.fail-on-severity }}\`"
+            echo "- **License Check Enabled:** \`${{ inputs.license-check }}\`"
+            echo "- **Allowed Licenses:** \`${{ inputs.allow-licenses }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,21 @@
+# Gitleaks Configuration Baseline
+title = "gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for synthetic identifiers and documentation examples"
+paths = [
+  '''fixtures/''',
+  '''docs/''',
+  '''examples/''',
+  '''\.gitleaks\.toml$'''
+]
+regexes = [
+  '''111111111111''',
+  '''00000000-0000-0000-0000-000000000000''',
+  '''example\.com''',
+  '''dummy_token''',
+  '''fake_key'''
+]
