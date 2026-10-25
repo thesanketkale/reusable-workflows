@@ -1,0 +1,56 @@
+# General
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*~
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# .NET / C#
+[Bb]in/
+[Oo]bj/
+TestResults/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# PHP / Composer
+vendor/
+.phpunit.cache/
+.phpunit.result.cache
+.php-cs-fixer.cache
+
+# Terraform / OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Docker / Build
+dist/
+build/
+*.tar
+*.gz
+
+# Code Coverage
+coverage/
+*.lcov
+TestCoverage/
