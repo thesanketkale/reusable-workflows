@@ -1,0 +1,13 @@
+{
+  "name": "fixture-node",
+  "version": "1.0.0",
+  "description": "Synthetic Node.js test fixture",
+  "main": "index.js",
+  "scripts": {
+    "lint": "node -e \"console.log('Linting passed')\"",
+    "test": "node --test test.js",
+    "build": "node -e \"console.log('Build completed')\""
+  },
+  "author": "Sanket Kale",
+  "license": "MIT"
+}

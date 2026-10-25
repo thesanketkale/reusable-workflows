@@ -1,0 +1,38 @@
+name: 'Self-Test: Docker Publish'
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - '.github/workflows/docker-publish.yml'
+      - '.github/workflows/selftest-docker.yml'
+      - 'fixtures/docker/**'
+  pull_request:
+    branches: ['main']
+    paths:
+      - '.github/workflows/docker-publish.yml'
+      - '.github/workflows/selftest-docker.yml'
+      - 'fixtures/docker/**'
+  workflow_dispatch:
+
+concurrency:
+  group: selftest-docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions: {}
+
+jobs:
+  call-docker-publish:
+    name: 'Run Docker Publish Self-Test (No Push)'
+    uses: ./.github/workflows/docker-publish.yml
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    with:
+      image-name: 'ghcr.io/thesanketkale/fixture-image'
+      dockerfile: 'fixtures/docker/Dockerfile'
+      context: 'fixtures/docker'
+      push: false
+      platforms: 'linux/amd64'

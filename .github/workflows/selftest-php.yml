@@ -1,0 +1,32 @@
+name: 'Self-Test: PHP CI'
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - '.github/workflows/php-ci.yml'
+      - '.github/workflows/selftest-php.yml'
+      - 'fixtures/php/**'
+  pull_request:
+    branches: ['main']
+    paths:
+      - '.github/workflows/php-ci.yml'
+      - '.github/workflows/selftest-php.yml'
+      - 'fixtures/php/**'
+  workflow_dispatch:
+
+concurrency:
+  group: selftest-php-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions: {}
+
+jobs:
+  call-php-ci:
+    name: 'Run PHP CI Self-Test'
+    uses: ./.github/workflows/php-ci.yml
+    permissions:
+      contents: read
+    with:
+      working-directory: 'fixtures/php'
+      extensions: 'mbstring, xml, ctype, pdo, pdo_sqlite'

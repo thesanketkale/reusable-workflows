@@ -1,0 +1,24 @@
+name: 'Example: Docker Publish Caller'
+
+on:
+  push:
+    branches: ['main']
+    tags: ['v*']
+
+permissions: {}
+
+jobs:
+  docker-publish:
+    name: 'Docker Publish Pipeline'
+    uses: thesanketkale/reusable-workflows/.github/workflows/docker-publish.yml@v1
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    with:
+      image-name: 'ghcr.io/thesanketkale/my-service'
+      dockerfile: 'Dockerfile'
+      context: '.'
+      push: true
+      platforms: 'linux/amd64,linux/arm64'

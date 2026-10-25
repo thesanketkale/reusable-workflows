@@ -1,0 +1,20 @@
+name: 'Example: .NET CI Caller'
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+permissions: {}
+
+jobs:
+  dotnet-ci:
+    name: '.NET CI Pipeline'
+    uses: thesanketkale/reusable-workflows/.github/workflows/dotnet-ci.yml@v1
+    permissions:
+      contents: read
+    with:
+      dotnet-version: '8.0.x'
+      solution: 'MySolution.sln'
+      configuration: 'Release'

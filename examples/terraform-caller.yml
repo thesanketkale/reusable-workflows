@@ -1,0 +1,36 @@
+name: 'Example: Terraform Caller'
+
+on:
+  pull_request:
+    branches: ['main']
+  push:
+    branches: ['main']
+
+permissions: {}
+
+jobs:
+  static-checks:
+    name: 'Terraform Checks'
+    uses: thesanketkale/reusable-workflows/.github/workflows/terraform-checks.yml@v1
+    permissions:
+      contents: read
+    with:
+      working-directory: 'infra'
+      terraform-version: '1.9.0'
+      use-opentofu: false
+
+  plan-and-apply:
+    name: 'Terraform Plan & Apply'
+    needs: static-checks
+    uses: thesanketkale/reusable-workflows/.github/workflows/terraform-plan-apply.yml@v1
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+      issues: write
+    with:
+      cloud: 'aws'
+      working-directory: 'infra'
+      environment: 'production'
+      aws-role-to-assume: 'arn:aws:iam::111111111111:role/github-actions-terraform'
+      aws-region: 'us-east-1'
