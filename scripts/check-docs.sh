@@ -65,8 +65,10 @@ except Exception as e:
 " "$wf")
 
   if [ -n "$inputs" ]; then
+    inputs=$(echo "$inputs" | tr -d '\r')
     while IFS= read -r input_name; do
       [ -n "$input_name" ] || continue
+      input_name=$(echo "$input_name" | tr -d '\r')
       if ! grep -q "\`$input_name\`" "$doc"; then
         echo "ERROR: Input '$input_name' in $wf is NOT documented in $doc"
         FAILED=$((FAILED + 1))
