@@ -1,0 +1,41 @@
+name: Feature Request
+description: Propose a new reusable workflow, input parameter, or feature
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose an enhancement or new reusable workflow to add to the library.
+  - type: input
+    id: title-summary
+    attributes:
+      label: Proposal Title
+      description: Brief one-line summary of the requested feature.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement / Motivation
+      description: Is your feature request related to a problem or limitation?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution / Workflow Interface
+      description: Describe the expected behavior, inputs, outputs, and permissions.
+      placeholder: |
+        inputs:
+          my-parameter:
+            type: string
+            default: 'foo'
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative approaches or workarounds you considered.
+    validations:
+      required: false

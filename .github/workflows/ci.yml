@@ -1,0 +1,66 @@
+name: 'CI: Repository Quality & Governance'
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+concurrency:
+  group: repo-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions: {}
+
+jobs:
+  static-analysis:
+    name: 'Actionlint, Yamllint & Shellcheck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.12'
+
+      - name: Install yamllint and shellcheck
+        shell: bash
+        run: |
+          pip install --no-cache-dir yamllint pyyaml
+          sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Download actionlint binary
+        shell: bash
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/
+
+      - name: Run actionlint
+        shell: bash
+        run: |
+          actionlint -color
+
+      - name: Run yamllint
+        shell: bash
+        run: |
+          yamllint -c .yamllint.yml .
+
+      - name: Run shellcheck on shell scripts
+        shell: bash
+        run: |
+          files=$(find . -name "*.sh" -not -path "*/.*" 2>/dev/null)
+          if [ -n "$files" ]; then
+            # shellcheck disable=SC2086
+            shellcheck $files
+          fi
+
+      - name: Validate documentation input contracts
+        shell: bash
+        run: |
+          bash scripts/check-docs.sh

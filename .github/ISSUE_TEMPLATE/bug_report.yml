@@ -1,0 +1,51 @@
+name: Bug Report
+description: File a bug report for an issue with a reusable workflow or action
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue in `reusable-workflows`. Please provide clear reproduction steps.
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Affected Workflow / Action
+      description: Which workflow or action is experiencing an issue?
+      options:
+        - dotnet-ci.yml
+        - node-ci.yml
+        - php-ci.yml
+        - docker-publish.yml
+        - terraform-checks.yml
+        - terraform-plan-apply.yml
+        - release-please.yml
+        - codeql.yml
+        - dependency-review.yml
+        - gitleaks.yml
+        - .github/actions/cloud-login
+        - Other / Repository CI
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem Description
+      description: Describe what happened and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: caller-config
+    attributes:
+      label: Caller Workflow Configuration
+      description: Paste the caller YAML invoking the reusable workflow.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Workflow Run Logs
+      description: Paste relevant error messages or failure snippets.
+      render: shell
+    validations:
+      required: false

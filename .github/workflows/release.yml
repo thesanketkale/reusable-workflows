@@ -1,0 +1,46 @@
+name: 'Release Automation'
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release-please:
+    name: 'Run Release Please'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run Release Please Action
+        id: release
+        uses: google-github-actions/release-please-action@e4dc86ba9405554aeba3c6bb2d169500e7d3b4ee # v4.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: simple
+
+      - name: Sync moving v1 tag
+        if: steps.release.outputs.releases_created == 'true'
+        shell: bash
+        run: |
+          TAG_NAME="${{ steps.release.outputs.tag_name }}"
+          MAJOR_TAG="v1"
+          echo "Updating moving major tag $MAJOR_TAG to point to $TAG_NAME..."
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -fa "$MAJOR_TAG" -m "Update moving release tag $MAJOR_TAG to $TAG_NAME" "$TAG_NAME"
+          git push origin "$MAJOR_TAG" --force
