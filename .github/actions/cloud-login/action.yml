@@ -1,0 +1,73 @@
+name: 'Cloud OIDC Login'
+description: 'Unified OpenID Connect authentication for AWS and Azure without stored credentials'
+inputs:
+  cloud:
+    description: 'Target cloud provider ("aws" or "azure")'
+    required: true
+  aws-role-to-assume:
+    description: 'AWS IAM Role ARN to assume via GitHub OIDC'
+    required: false
+    default: ''
+  aws-region:
+    description: 'AWS target region'
+    required: false
+    default: 'us-east-1'
+  aws-audience:
+    description: 'Audience for the AWS OIDC token'
+    required: false
+    default: 'sts.amazonaws.com'
+  azure-client-id:
+    description: 'Azure Entra ID Application (client) ID'
+    required: false
+    default: ''
+  azure-tenant-id:
+    description: 'Azure Entra ID Directory (tenant) ID'
+    required: false
+    default: ''
+  azure-subscription-id:
+    description: 'Azure Subscription ID'
+    required: false
+    default: ''
+  azure-audience:
+    description: 'Audience for Azure Entra token'
+    required: false
+    default: 'api://AzureADTokenExchange'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate cloud provider input
+      shell: bash
+      run: |
+        CLOUD_PROVIDER="${{ inputs.cloud }}"
+        if [ "$CLOUD_PROVIDER" != "aws" ] && [ "$CLOUD_PROVIDER" != "azure" ]; then
+          echo "::error::Invalid cloud provider '${CLOUD_PROVIDER}'. Allowed values: 'aws', 'azure'."
+          exit 1
+        fi
+        if [ "$CLOUD_PROVIDER" = "aws" ] && [ -z "${{ inputs.aws-role-to-assume }}" ]; then
+          echo "::error::'aws-role-to-assume' is required when cloud is 'aws'."
+          exit 1
+        fi
+        if [ "$CLOUD_PROVIDER" = "azure" ]; then
+          if [ -z "${{ inputs.azure-client-id }}" ] || [ -z "${{ inputs.azure-tenant-id }}" ] || [ -z "${{ inputs.azure-subscription-id }}" ]; then
+            echo "::error::'azure-client-id', 'azure-tenant-id', and 'azure-subscription-id' are required when cloud is 'azure'."
+            exit 1
+          fi
+        fi
+
+    - name: Configure AWS Credentials via OIDC
+      if: inputs.cloud == 'aws'
+      uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+        audience: ${{ inputs.aws-audience }}
+
+    - name: Login to Azure via OIDC
+      if: inputs.cloud == 'azure'
+      uses: azure/login@d19a4f1b3c068b799dff7574ac265b0144f415fe # v2.2.0
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
+        audience: ${{ inputs.azure-audience }}

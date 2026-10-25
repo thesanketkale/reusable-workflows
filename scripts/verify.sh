@@ -47,7 +47,9 @@ run_shellcheck_all() {
 
 # ---------------------------------------------------------------- FAST ----
 fast_checks() {
-  if [ -d ".github/workflows" ] || [ -d ".github/actions" ]; then
+  local wf_count
+  wf_count=$(find .github/workflows -maxdepth 1 -name "*.yml" -o -name "*.yaml" 2>/dev/null | wc -l)
+  if [ "$wf_count" -gt 0 ]; then
     if have actionlint; then
       step "actionlint workflow syntax" actionlint
     elif have python3; then
@@ -56,6 +58,10 @@ fast_checks() {
 
     if have yamllint; then
       step "yamllint fast" yamllint -c .yamllint.yml .github/
+    fi
+  elif [ -d ".github/actions" ]; then
+    if have yamllint; then
+      step "yamllint fast" yamllint -c .yamllint.yml .github/actions/
     fi
   fi
 
@@ -70,13 +76,16 @@ fast_checks() {
 
 # ---------------------------------------------------------------- FULL ----
 full_checks() {
-  if [ -d ".github/workflows" ] || [ -d ".github/actions" ]; then
+  local wf_count
+  wf_count=$(find .github/workflows -maxdepth 1 -name "*.yml" -o -name "*.yaml" 2>/dev/null | wc -l)
+  if [ "$wf_count" -gt 0 ]; then
     if have actionlint; then
       step "actionlint (full)" actionlint -color
     fi
-    if have yamllint; then
-      step "yamllint (full)" yamllint -c .yamllint.yml .
-    fi
+  fi
+
+  if have yamllint; then
+    step "yamllint (full)" yamllint -c .yamllint.yml .
   fi
 
   if have shellcheck; then
