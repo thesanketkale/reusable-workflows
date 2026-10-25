@@ -1,0 +1,233 @@
+name: 'Reusable Terraform Plan & Apply'
+
+on:
+  workflow_call:
+    inputs:
+      cloud:
+        description: 'Target cloud platform ("aws" or "azure")'
+        type: string
+        required: true
+      working-directory:
+        description: 'Directory containing Terraform/OpenTofu files'
+        type: string
+        required: false
+        default: '.'
+      terraform-version:
+        description: 'Terraform or OpenTofu CLI version to install'
+        type: string
+        required: false
+        default: '1.9.0'
+      use-opentofu:
+        description: 'Whether to use OpenTofu instead of HashiCorp Terraform'
+        type: boolean
+        required: false
+        default: false
+      environment:
+        description: 'Target GitHub Environment for apply phase approvals'
+        type: string
+        required: false
+        default: 'production'
+      aws-role-to-assume:
+        description: 'AWS IAM Role ARN for OIDC authentication'
+        type: string
+        required: false
+        default: ''
+      aws-region:
+        description: 'AWS target region'
+        type: string
+        required: false
+        default: 'us-east-1'
+      azure-client-id:
+        description: 'Azure Entra ID client ID for OIDC'
+        type: string
+        required: false
+        default: ''
+      azure-tenant-id:
+        description: 'Azure Entra ID tenant ID'
+        type: string
+        required: false
+        default: ''
+      azure-subscription-id:
+        description: 'Azure Subscription ID'
+        type: string
+        required: false
+        default: ''
+
+permissions: {}
+
+jobs:
+  plan:
+    name: 'Terraform Plan (${{ inputs.cloud }})'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup OpenTofu CLI
+        if: inputs.use-opentofu
+        uses: opentofu/setup-opentofu@592200bd4b9bbf4772ace78f887668b1aee8f716 # v1.0.5
+        with:
+          tofu_version: ${{ inputs.terraform-version }}
+
+      - name: Setup Terraform CLI
+        if: ${{ !inputs.use-opentofu }}
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+          terraform_wrapper: false
+
+      - name: Authenticate to AWS via OIDC
+        if: inputs.cloud == 'aws' && inputs.aws-role-to-assume != ''
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+        with:
+          role-to-assume: ${{ inputs.aws-role-to-assume }}
+          aws-region: ${{ inputs.aws-region }}
+          audience: 'sts.amazonaws.com'
+
+      - name: Authenticate to Azure via OIDC
+        if: inputs.cloud == 'azure' && inputs.azure-client-id != ''
+        uses: azure/login@d19a4f1b3c068b799dff7574ac265b0144f415fe # v2.2.0
+        with:
+          client-id: ${{ inputs.azure-client-id }}
+          tenant-id: ${{ inputs.azure-tenant-id }}
+          subscription-id: ${{ inputs.azure-subscription-id }}
+
+      - name: Initialize Terraform
+        shell: bash
+        run: |
+          CMD="terraform"
+          if [ "${{ inputs.use-opentofu }}" = "true" ]; then CMD="tofu"; fi
+          $CMD init
+
+      - name: Generate Terraform Plan
+        id: plan
+        shell: bash
+        run: |
+          CMD="terraform"
+          if [ "${{ inputs.use-opentofu }}" = "true" ]; then CMD="tofu"; fi
+          $CMD plan -no-color -out=tfplan > plan_output.txt
+          cat plan_output.txt
+
+      - name: Upload execution plan artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: tfplan-${{ inputs.cloud }}-${{ inputs.environment }}
+          path: ${{ inputs.working-directory }}/tfplan
+          retention-days: 7
+
+      - name: Post or update sticky PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const planPath = path.join('${{ inputs.working-directory }}', 'plan_output.txt');
+            let planText = 'Plan output unavailable.';
+            if (fs.existsSync(planPath)) {
+              planText = fs.readFileSync(planPath, 'utf8');
+            }
+            if (planText.length > 60000) {
+              planText = planText.substring(0, 60000) + '\n... [truncated]';
+            }
+
+            const header = `#### Terraform Plan: \`${{ inputs.cloud }}\` (\`${{ inputs.environment }}\`)`;
+            const body = `${header}\n\n<details><summary>Show Plan Output</summary>\n\n\`\`\`hcl\n${planText}\n\`\`\`\n\n</details>\n\n*Pushed by @${context.actor} at ${new Date().toISOString()}*`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c => c.user && c.user.type === 'Bot' && c.body && c.body.includes(header));
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+  apply:
+    name: 'Terraform Apply (${{ inputs.cloud }})'
+    needs: plan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup OpenTofu CLI
+        if: inputs.use-opentofu
+        uses: opentofu/setup-opentofu@592200bd4b9bbf4772ace78f887668b1aee8f716 # v1.0.5
+        with:
+          tofu_version: ${{ inputs.terraform-version }}
+
+      - name: Setup Terraform CLI
+        if: ${{ !inputs.use-opentofu }}
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+          terraform_wrapper: false
+
+      - name: Authenticate to AWS via OIDC
+        if: inputs.cloud == 'aws' && inputs.aws-role-to-assume != ''
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+        with:
+          role-to-assume: ${{ inputs.aws-role-to-assume }}
+          aws-region: ${{ inputs.aws-region }}
+          audience: 'sts.amazonaws.com'
+
+      - name: Authenticate to Azure via OIDC
+        if: inputs.cloud == 'azure' && inputs.azure-client-id != ''
+        uses: azure/login@d19a4f1b3c068b799dff7574ac265b0144f415fe # v2.2.0
+        with:
+          client-id: ${{ inputs.azure-client-id }}
+          tenant-id: ${{ inputs.azure-tenant-id }}
+          subscription-id: ${{ inputs.azure-subscription-id }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: tfplan-${{ inputs.cloud }}-${{ inputs.environment }}
+          path: ${{ inputs.working-directory }}
+
+      - name: Initialize Terraform
+        shell: bash
+        run: |
+          CMD="terraform"
+          if [ "${{ inputs.use-opentofu }}" = "true" ]; then CMD="tofu"; fi
+          $CMD init
+
+      - name: Apply infrastructure changes
+        shell: bash
+        run: |
+          CMD="terraform"
+          if [ "${{ inputs.use-opentofu }}" = "true" ]; then CMD="tofu"; fi
+          $CMD apply -auto-approve tfplan
