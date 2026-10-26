@@ -42,11 +42,10 @@ flowchart TD
             CA_CloudLogin[".github/actions/cloud-login\n(Unified AWS/Azure OIDC action)"]
         end
 
-        subgraph SecurityCI["Security & Release Automation"]
+        subgraph SecurityCI["Security Automation"]
             WF_CodeQL["codeql.yml\n(Static security analysis)"]
             WF_Gitleaks["gitleaks.yml\n(Secret detection in history)"]
             WF_DepReview["dependency-review.yml\n(Supply chain risk gate)"]
-            WF_ReleasePlease["release-please.yml\n(Changelog & tag management)"]
         end
     end
 

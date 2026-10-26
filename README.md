@@ -95,11 +95,10 @@ flowchart TD
             CA_CloudLogin[".github/actions/cloud-login"]
         end
 
-        subgraph SecurityCI["Security & Release"]
+        subgraph SecurityCI["Security Scanners"]
             WF_CodeQL["codeql.yml"]
             WF_Gitleaks["gitleaks.yml"]
             WF_DepReview["dependency-review.yml"]
-            WF_ReleasePlease["release-please.yml"]
         end
     end
 
@@ -133,7 +132,6 @@ flowchart TD
 | [`docker-publish.yml`](.github/workflows/docker-publish.yml) | Docker Buildx, GHCR push, multi-arch build, SBOM and provenance attestations | `contents: read`, `packages: write`, `id-token: write`, `attestations: write` | None (uses `github.token`) | [docs/docker-publish.md](docs/workflows/docker-publish.md) |
 | [`terraform-checks.yml`](.github/workflows/terraform-checks.yml) | Credential-free Terraform/OpenTofu fmt, validate, TFLint, and Checkov scan | `contents: read` | None | [docs/terraform-checks.md](docs/workflows/terraform-checks.md) |
 | [`terraform-plan-apply.yml`](.github/workflows/terraform-plan-apply.yml) | OIDC cloud authentication, sticky PR plan comment, protected Environment apply | `contents: read`, `id-token: write`, `pull-requests: write`, `issues: write` | None (OIDC keyless) | [docs/terraform-plan-apply.md](docs/workflows/terraform-plan-apply.md) |
-| [`release-please.yml`](.github/workflows/release-please.yml) | Automated semantic release PRs, changelog updates, and git tagging | `contents: write`, `pull-requests: write` | Optional `token` | [docs/release-please.md](docs/workflows/release-please.md) |
 | [`codeql.yml`](.github/workflows/codeql.yml) | Static code security analysis with GitHub CodeQL scanner | `contents: read`, `security-events: write` | None | [docs/codeql.md](docs/workflows/codeql.md) |
 | [`dependency-review.yml`](.github/workflows/dependency-review.yml) | Pull request dependency security and license compliance evaluation | `contents: read`, `pull-requests: write` | None | [docs/dependency-review.md](docs/workflows/dependency-review.md) |
 | [`gitleaks.yml`](.github/workflows/gitleaks.yml) | Complete git history secret scanning with Gitleaks | `contents: read` | None | [docs/gitleaks.md](docs/workflows/gitleaks.md) |

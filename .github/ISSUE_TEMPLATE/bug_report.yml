@@ -18,7 +18,6 @@ body:
         - docker-publish.yml
         - terraform-checks.yml
         - terraform-plan-apply.yml
-        - release-please.yml
         - codeql.yml
         - dependency-review.yml
         - gitleaks.yml
