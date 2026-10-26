@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # scripts/verify.sh: Validation runner for reusable-workflows
 #
-# Usage:
+# Run by you, the git pre-commit hook, and every agent (Claude Code and Antigravity):
 #   bash scripts/verify.sh fast   # Fast syntax, lint, shellcheck (< 30s)
-#   bash scripts/verify.sh full   # Comprehensive actionlint, yamllint, shellcheck, doc check
-#
+#   bash scripts/verify.sh full   # Comprehensive checks (fast + docs, fixtures, tests)
+# Exit codes: 0 ok (INCOMPLETE still exits 0, so read the last line), 1 a check failed, 3 full ran no checks at all (not green).
+
 set -o pipefail
 MODE="${1:-full}"
 case "$MODE" in fast|full) ;; *) echo "usage: verify.sh [fast|full]" >&2; exit 64 ;; esac
@@ -23,6 +24,7 @@ step() {
   printf '\n> %s\n' "$label"; RAN=$((RAN + 1))
   if "$@"; then printf 'ok  %s\n' "$label"; else printf 'FAIL %s\n' "$label"; FAILED="$FAILED, $label"; fi
 }
+staged() { git diff --cached --name-only --diff-filter=ACMR -- "$@"; }
 skip() {
   case "$SKIPPED," in *", $1,"*) return 0 ;; esac
   printf 'SKIPPED %s\n' "$1" >&2; SKIPPED="$SKIPPED, $1"
@@ -37,60 +39,42 @@ run_shellcheck_scripts() {
   fi
 }
 
-run_shellcheck_all() {
-  local files
-  mapfile -t files < <(find . -name "*.sh" -not -path "*/.*" 2>/dev/null)
-  if [ ${#files[@]} -gt 0 ]; then
-    shellcheck "${files[@]}"
-  fi
-}
-
 # ---------------------------------------------------------------- FAST ----
 fast_checks() {
-  local wf_count
-  wf_count=$(find .github/workflows -maxdepth 1 -name "*.yml" -o -name "*.yaml" 2>/dev/null | wc -l)
-  if [ "$wf_count" -gt 0 ]; then
-    if have actionlint; then
-      step "actionlint workflow syntax" actionlint
-    elif have python3; then
-      step "python3 yaml syntax" python3 -c "import glob, yaml; [yaml.safe_load(open(f, encoding='utf-8')) for f in glob.glob('.github/**/*.y*ml', recursive=True)]"
-    fi
-
-    if have yamllint; then
-      step "yamllint fast" yamllint -c .yamllint.yml .github/
-    fi
-  elif [ -d ".github/actions" ]; then
-    if have yamllint; then
-      step "yamllint fast" yamllint -c .yamllint.yml .github/actions/
-    fi
+  # 1. actionlint
+  if have actionlint; then
+    step "actionlint workflow syntax" actionlint
   fi
 
+  # 2. yamllint .github examples fixtures
+  if have yamllint; then
+    step "yamllint fast" yamllint -c .yamllint.yml .github examples fixtures
+  fi
+
+  # 3. shellcheck scripts/*.sh
   if have shellcheck; then
     step "shellcheck scripts" run_shellcheck_scripts
   fi
 
-  if [ -f "scripts/check-docs.sh" ] && [ -d "docs/workflows" ]; then
-    step "documentation sync check" bash scripts/check-docs.sh
+  # 4. scripts/check-workflows.sh (when present)
+  if [ -f "scripts/check-workflows.sh" ]; then
+    step "check workflows" bash scripts/check-workflows.sh
   fi
 }
 
 # ---------------------------------------------------------------- FULL ----
 full_checks() {
-  local wf_count
-  wf_count=$(find .github/workflows -maxdepth 1 -name "*.yml" -o -name "*.yaml" 2>/dev/null | wc -l)
-  if [ "$wf_count" -gt 0 ]; then
-    if have actionlint; then
-      step "actionlint (full)" actionlint -color
-    fi
+  # 1. scripts/check-docs.sh (when present)
+  if [ -f "scripts/check-docs.sh" ]; then
+    step "documentation sync check" bash scripts/check-docs.sh
   fi
 
-  if have yamllint; then
-    step "yamllint (full)" yamllint -c .yamllint.yml .
+  # 2. scripts/run-fixtures.sh (when present)
+  if [ -f "scripts/run-fixtures.sh" ]; then
+    step "run fixtures" bash scripts/run-fixtures.sh
   fi
 
-  if have shellcheck; then
-    step "shellcheck (all shell scripts)" run_shellcheck_all
-  fi
+  # Missing tools omitted from this machine: bats, markdownlint
 }
 
 fast_checks
@@ -107,8 +91,8 @@ if [ -n "$SKIPPED" ]; then
   exit 0
 fi
 if [ "$RAN" -eq 0 ]; then
-  printf '\nverify %s: NO CHECKS RAN. Baseline scaffold in progress.\n' "$MODE"
-  if [ "$MODE" = "full" ]; then exit 0; fi
+  printf '\nverify %s: NO CHECKS RAN. Nothing is configured yet; fill fast_checks/full_checks (init-project does this).\n' "$MODE"
+  if [ "$MODE" = "full" ]; then exit 3; fi
   exit 0
 fi
 printf '\nverify %s: OK (%d checks)\n' "$MODE" "$RAN"
