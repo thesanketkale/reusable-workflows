@@ -57,7 +57,7 @@ runs:
 
     - name: Configure AWS Credentials via OIDC
       if: inputs.cloud == 'aws'
-      uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+      uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         aws-region: ${{ inputs.aws-region }}
@@ -65,7 +65,7 @@ runs:
 
     - name: Login to Azure via OIDC
       if: inputs.cloud == 'azure'
-      uses: azure/login@d19a4f1b3c068b799dff7574ac265b0144f415fe # v2.2.0
+      uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
       with:
         client-id: ${{ inputs.azure-client-id }}
         tenant-id: ${{ inputs.azure-tenant-id }}
