@@ -51,7 +51,7 @@ flowchart TD
 
     subgraph Gates["Local & CI Quality Gates"]
         Fixtures["fixtures/ (C#, Node, PHP, TF, Docker)"]
-        Selftests["selftest-*.yml\n(Positive & Failure Propagation)"]
+        Selftests["ci.yml Self-Tests\n(Positive & Failure Propagation)"]
         Verify["scripts/check-docs.sh\nactionlint + yamllint + shellcheck"]
     end
 

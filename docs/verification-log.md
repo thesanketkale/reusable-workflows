@@ -14,12 +14,12 @@ All of the following items are automatically verified by GitHub Actions on every
 | YAML Formatting & Schema | `yamllint -c .yamllint.yml .` | Verified |
 | Shell Script Quality | `shellcheck` on all `.sh` scripts | Verified |
 | Documentation Contract Sync | `scripts/check-docs.sh` | Verified |
-| .NET CI Execution | `selftest-dotnet.yml` against `fixtures/dotnet/` | Verified |
-| Node CI Execution | `selftest-node.yml` against `fixtures/node/` | Verified |
-| PHP CI Matrix (8.2, 8.3, 8.4) | `selftest-php.yml` against `fixtures/php/` | Verified |
-| Docker Container Build & Labeling | `selftest-docker.yml` against `fixtures/docker/` | Verified |
-| Terraform Credential-Free Checks | `selftest-terraform.yml` against `fixtures/terraform/` | Verified |
-| Failure Propagation Test | `selftest-failure-propagation.yml` against `fixtures/dotnet-failing/` | Verified |
+| .NET CI Execution | `ci.yml` (`selftest-dotnet`) against `fixtures/dotnet/` | Verified |
+| Node CI Execution | `ci.yml` (`selftest-node`) against `fixtures/node/` | Verified |
+| PHP CI Matrix (8.2, 8.3, 8.4) | `ci.yml` (`selftest-php`) against `fixtures/php/` | Verified |
+| Docker Container Build & Labeling | `ci.yml` (`selftest-docker`) against `fixtures/docker/` | Verified |
+| Terraform Credential-Free Checks | `ci.yml` (`selftest-terraform`) against `fixtures/terraform/` | Verified |
+| Failure Propagation Test | `ci.yml` (`selftest-failure-propagation`) against `fixtures/dotnet-failing/` | Verified |
 
 ---
 

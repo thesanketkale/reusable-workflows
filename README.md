@@ -104,7 +104,7 @@ flowchart TD
 
     subgraph Gates["Harness Verification"]
         Fixtures["fixtures/ (C#, Node, PHP, TF, Docker)"]
-        Selftests["selftest-*.yml (Positive & Negative)"]
+        Selftests["ci.yml (Self-Tests: Positive & Negative)"]
         Linters["actionlint + yamllint + shellcheck + check-docs.sh"]
     end
 
@@ -195,12 +195,12 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 full
 
 | Capability | Status | Verification Method |
 |---|---|---|
-| .NET CI Pipeline | Verified | Automated self-test via `selftest-dotnet.yml` against `fixtures/dotnet/` |
-| Node.js CI Pipeline | Verified | Automated self-test via `selftest-node.yml` against `fixtures/node/` |
-| PHP CI Pipeline | Verified | Automated self-test via `selftest-php.yml` against `fixtures/php/` |
-| Docker Container Publish | Verified | Automated self-test via `selftest-docker.yml` against `fixtures/docker/` |
-| Terraform Credential-Free Checks | Verified | Automated self-test via `selftest-terraform.yml` against `fixtures/terraform/` |
-| Failure Propagation | Verified | Negative self-test via `selftest-failure-propagation.yml` against `fixtures/dotnet-failing/` |
+| .NET CI Pipeline | Verified | Automated self-test in `ci.yml` against `fixtures/dotnet/` |
+| Node.js CI Pipeline | Verified | Automated self-test in `ci.yml` against `fixtures/node/` |
+| PHP CI Pipeline | Verified | Automated self-test in `ci.yml` against `fixtures/php/` |
+| Docker Container Publish | Verified | Automated self-test in `ci.yml` against `fixtures/docker/` |
+| Terraform Credential-Free Checks | Verified | Automated self-test in `ci.yml` against `fixtures/terraform/` |
+| Failure Propagation | Verified | Negative self-test in `ci.yml` against `fixtures/dotnet-failing/` |
 | Workflow Syntax & Linting | Verified | `actionlint`, `yamllint`, and `shellcheck` executed in `ci.yml` |
 | Documentation Contract Match | Verified | Verified in CI via `scripts/check-docs.sh` |
 | AWS & Azure Live OIDC Login | **Owner-Verified** | Documented with reproduction runbooks in [`docs/verification-log.md`](docs/verification-log.md) |
