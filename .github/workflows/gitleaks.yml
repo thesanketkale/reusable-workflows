@@ -30,7 +30,7 @@ jobs:
           fetch-depth: ${{ inputs.fetch-depth }}
 
       - name: Run Gitleaks secret scanner
-        uses: gitleaks/gitleaks-action@292275464a024849646b5a3717ea15cbef530f25 # v3.0.0
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITLEAKS_CONFIG: ${{ inputs.config-path }}

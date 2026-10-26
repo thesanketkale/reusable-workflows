@@ -43,7 +43,7 @@ jobs:
           corepack prepare pnpm@latest --activate
 
       - name: Setup Node.js with cache
-        uses: actions/setup-node@0a44ba7841725637a54e280261171720ccf26361 # v7.1.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ inputs.node-version }}
           cache: ${{ inputs.package-manager }}
